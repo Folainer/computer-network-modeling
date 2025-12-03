@@ -11,7 +11,7 @@ Packet::Packet(int packetId, int src, int dst, int packetSize, int messageId, in
 {
     if (type == VIRTUAL_CHANNEL && routeTable != nullptr)
     {
-        this->routeTable = const_cast<std::vector<int>*>(routeTable);
+        this->routeTable = routeTable;
     }
 }
 

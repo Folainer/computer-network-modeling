@@ -2,9 +2,6 @@
 #include "Simulation.hpp"
 #include "PathAlgorithms.hpp"
 
-Weight::Weight(double latency, double bandwidth)
-    : latency_ms(latency), bandwidth_mbps(bandwidth) {}
-
 Controller::Controller(int nonSatelliteNodeCount, int satelliteCount)
 : _graph(nonSatelliteNodeCount, satelliteCount) 
 {

@@ -10,76 +10,80 @@
 #include <iomanip>
 #include <memory>
 #include <cmath>
-
-// #include "Global.hpp"
+#include "Global.hpp"
+#include "Packet.hpp"
 
 class Controller;
-#include "Controller.hpp"
 
-enum TransactionType { DATAGRAM, VIRTUAL_CHANNEL };
-
-// Message represents the data being transmitted
+// Message represents data being transmitted
 class Message {
 public:
     Message(int messageSize, int messageId, TransactionType type);
     
-    int getDispacement() const { return displacement; }
-    void setDispacement(int newValue) { displacement = newValue; }
+    int getDisplacement() const { return displacement; }
+    void setDisplacement(int newValue) { displacement = newValue; }
     int getMessageSize() const { return messageSize; }
     int getMessageId() const { return messageId; }
     TransactionType getType() const { return type; }
     
-    void setRoute(const std::vector<int>& route);
-    const std::vector<int>* getRoute() const { return &routeTable; }
-    // std::vector<int>* getRoute() const { return &routeTable; }
+    void setRoute(const vector<int>& route);
+    const vector<int>& getRoute() const { return routeTable; }
+    bool hasRoute() const { return !routeTable.empty(); }
     
 private:
     int displacement;
     int messageSize;
     int messageId;
     TransactionType type;
-    std::vector<int> routeTable;  // Fixed route for the message
+    vector<int> routeTable;
 };
-
-// Packet is declared in its own header
-class Packet;
-#include "Packet.hpp"
 
 // Transaction represents a network transmission request
 struct Transaction {
-    int t;           // Time
-    int src;         // Source node
-    int dst;         // Destination node
-    int size;        // Message size
+    int t;
+    int src;
+    int dst;
+    int size;
     TransactionType type;
     int id;
-    std::shared_ptr<Message> message;  // The message being transmitted
+    shared_ptr<Message> message;
     
     Transaction(int t, int src, int dst, int size, TransactionType type, int id);
     bool operator<(const Transaction& other) const;
 };
 
-class Simulation
-{
+// Network simulation engine
+class Simulation {
 public:
-    Simulation(const std::string& inputfile, Graph& graph, Controller& controller);
-    void run(const std::string& outputfile);
+    Simulation(const string& inputfile, Graph& graph, Controller& controller);
+    void run(const string& outputfile);
 
 private:
     Graph& g;
     Controller& controller;
-    std::priority_queue<Transaction> pq;
-    long int simulationTime;
-    std::ofstream file;
+    priority_queue<Transaction> pq;
+    long simulationTime;
+    ofstream file;
     
-    std::vector<Transaction> parseTransactionFile(const std::string& filepath);
-    std::string getPath(const std::vector<int>* routeTable) const;
+    // File parsing
+    vector<Transaction> parseTransactionFile(const string& filepath);
+    
+    // Processing
     void processTransaction(Transaction& trans);
     void processBuffer();
-    void outputPacketTransaction(Packet& packet, Edge& edge);
-
-    int findNextVirtual(int from, const vector<int>& routeTable);
-    Edge* findEdgePtr(int from, int to) const;
+    void processEdgeBuffers();
+    
+    // Output helpers
+    void outputMessageStart(const Transaction& trans, const string& path);
+    void outputPacketCreation(const shared_ptr<Packet>& packet, int nodeId, 
+                             const string& path, char channelType);
+    void outputPacketTransmission(const shared_ptr<Packet>& packet, 
+                                 int fromNode, int toNode, const string& path);
+    
+    // Utility
+    string getPath(const vector<int>& routeTable) const;
+    int findNextHop(int currentNode, int destination);
+    bool hasActivePackets();
 };
 
-#endif
+#endif // SIMULATION_HPP

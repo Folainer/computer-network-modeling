@@ -5,9 +5,11 @@
 // Avoid including Global.hpp here to prevent circular include (Global.hpp includes Packet.hpp).
 #include <vector>
 
+class Graph;
+
 class Packet {
 public:
-    static Packet create(int src, int dst, int packetSize, int messageId, int type, const std::vector<int>* routeTable = nullptr);
+    static Packet create(int src, int dst, int packetSize, int messageId, int type, const std::vector<int>* routeTable);
 
     int getPacketId() const { return packetId; }
     int getMessageId() const { return messageId; }
@@ -23,6 +25,7 @@ public:
     void decrementTTL() { ttl--; }
     const std::vector<int>* getRouteTable() const { return routeTable; }
     int getNextNode(const Graph& g, int currentNode) const;
+    void incrementRoutePos() { routePos++; }
     
 private:
     Packet(int packetId, int src, int dst, int packetSize, int messageId, int type, const std::vector<int>* routeTable);
@@ -38,7 +41,7 @@ private:
     long int transmissionUntil;
     int sendingTime;
     int ttl;
-    std::vector<int>* routeTable;  // Copy of the message's route table to ensure lifetime
+    const std::vector<int>* routeTable;  // Pointer to message's route table (read-only)
     int routePos;
 };
 
