@@ -39,3 +39,9 @@
 
 # debug information files
 *.dwo
+
+# report info
+*.odt
+*.pdf
+*.doc
+*.docx
