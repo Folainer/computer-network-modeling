@@ -28,7 +28,7 @@ public:
     const std::shared_ptr<const std::vector<int>>& getRouteTable() const { return routeTable; }
     // const std::vector<int>* getRouteTable() const { return routeTable; }
     int getNextNode(const Graph& g, int currentNode) const;
-    void incrementRoutePos() { routePos--; }
+    void incrementRoutePos() { routePos++; }
     ~Packet();
     
 private:
