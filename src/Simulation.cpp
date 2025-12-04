@@ -2,7 +2,7 @@
 #include "Controller.hpp"
 #include <cmath>
 
-// Message implementation
+// Реалізація повідомлення
 Message::Message(int messageSize, int messageId, TransactionType type)
     : displacement(0), messageSize(messageSize), messageId(messageId), type(type) {}
 
@@ -10,16 +10,16 @@ void Message::setRoute(const vector<int>& route) {
     routeTable = route;
 }
 
-// Transaction implementation
+// Реалізація транзакції
 Transaction::Transaction(int t, int src, int dst, int size, TransactionType type, int id)
     : t(t), src(src), dst(dst), size(size), type(type), id(id),
       message(make_shared<Message>(size, id, type)) {}
 
 bool Transaction::operator<(const Transaction& other) const {
-    return t > other.t;  // Min-heap based on time
+    return t > other.t;  // Min-heap на основі часу
 }
 
-// Simulation implementation
+// Реалізація симуляції
 Simulation::Simulation(const string& inputfile, Graph& graph, Controller& controller)
     : g(graph), controller(controller), simulationTime(0) {
     
@@ -51,30 +51,30 @@ vector<Transaction> Simulation::parseTransactionFile(const string& filepath) {
     
     while (getline(file, line)) {
         lineNum++;
-        if (line.empty() || line[0] == '#') continue;  // Skip empty lines and comments
+        if (line.empty() || line[0] == '#') continue;  // Пропустити порожні рядки та коментарі
         
         try {
             stringstream ss(line);
             string token;
             
-            // Parse time
+            // Парсинг часу
             getline(ss, token, ':');
             int t = stoi(token);
             
             ss >> ws;
             
-            // Parse source
+            // Парсингу джерела
             getline(ss, token, '-');
             int src = stoi(token);
             
-            // Skip '>'
+            // Пропустити '>'
             ss.ignore(1);
             
-            // Parse destination
+            // Парсити місце призначення
             getline(ss, token, ' ');
             int dst = stoi(token);
             
-            // Parse size
+            // Парсити розмір
             int size;
             ss >> size;
             
@@ -83,7 +83,7 @@ vector<Transaction> Simulation::parseTransactionFile(const string& filepath) {
                 continue;
             }
             
-            // Determine type
+            // Визначити тип
             ss >> ws;
             string rest;
             getline(ss, rest);
@@ -157,14 +157,14 @@ void Simulation::outputPacketTransmission(const shared_ptr<Packet>& packet,
 void Simulation::processTransaction(Transaction& trans) {
     char channelType = (trans.type == VIRTUAL_CHANNEL) ? '+' : '-';
     
-    // Get source node
+    // Отримати вузол джерела
     Node* srcNode = g.getNode(trans.src);
     if (!srcNode) {
         cerr << "Error: Source node " << trans.src << " not found" << endl;
         return;
     }
 
-    // For VIRTUAL_CHANNEL, compute and store route once
+    // Для VIRTUAL_CHANNEL обчисліть і збережіть маршрут один раз
     if (trans.type == VIRTUAL_CHANNEL && !trans.message->hasRoute()) {
         vector<int> routeTable = controller.findPath(trans.src, trans.dst);
         
@@ -176,7 +176,7 @@ void Simulation::processTransaction(Transaction& trans) {
         trans.message->setRoute(routeTable);
     }
 
-    // Output message start on first packet
+    // Початок вихідного повідомлення в першому пакеті
     if (trans.message->getDisplacement() == 0) {
         string path = "";
         if (trans.type == VIRTUAL_CHANNEL) {
@@ -195,7 +195,7 @@ void Simulation::processTransaction(Transaction& trans) {
         cout << endl;
     }
     
-    // Create packets while buffer has space and message not complete
+    // Створити пакети, поки в буфері є місце і повідомлення не завершено
     int packetsCreated = 0;
     while (srcNode->buffer.size() < static_cast<size_t>(ROUTER_BUFFER_SIZE)) {
         int remaining = trans.size - trans.message->getDisplacement();
@@ -214,12 +214,12 @@ void Simulation::processTransaction(Transaction& trans) {
 
         trans.message->setDisplacement(trans.message->getDisplacement() + dataSize);
 
-        // Create packet
+        // Створити пакет
         shared_ptr<Packet> packet;
         if (trans.type == VIRTUAL_CHANNEL) {
-            const vector<int>& route = trans.message->getRoute();
+            const vector<int>* route = &trans.message->getRoute();
             packet = std::make_shared<Packet>(Packet::create(trans.src, trans.dst, packetSize,
-                                   trans.message->getMessageId(), trans.type, &route));
+                                   trans.message->getMessageId(), trans.type, route));
         } else {
             packet = std::make_shared<Packet>(Packet::create(trans.src, trans.dst, packetSize,
                                    trans.message->getMessageId(), trans.type, nullptr));
@@ -233,14 +233,14 @@ void Simulation::processTransaction(Transaction& trans) {
         srcNode->buffer.push(packet);
         packetsCreated++;
 
-        // Output packet creation
+        // Створення вихідного пакета
         string path = "";
         if (trans.type == VIRTUAL_CHANNEL) {
             path = getPath(trans.message->getRoute());
         }
         outputPacketCreation(packet, trans.src, path, channelType);
 
-        // If buffer is full, reschedule transaction
+        // Якщо буфер заповнений, переплануйте транзакцію
         if (srcNode->buffer.size() >= static_cast<size_t>(ROUTER_BUFFER_SIZE)) {
             if (trans.message->getDisplacement() < trans.size) {
                 pq.push(trans);
@@ -308,14 +308,16 @@ void Simulation::processBuffer() {
 
         // Find edge to next node
         Edge* edge = g.findEdge(nid, nextNode);
+        Edge* backEdge = g.findEdge(nextNode, nid);
+        
         if (!edge) {
             cerr << "Time " << simulationTime << ": No edge from " << nid
-                 << " to " << nextNode << endl;
+                 << " to " << nextNode << " (" << packet->getPacketId() << ')' << endl;
             continue;
         }
 
         // Check if edge can accept packet (HALF_DUPLEX only allows one packet at a time)
-        if (edge->type == HALF_DUPLEX && !edge->buffer.empty()) {
+        if (edge->type == HALF_DUPLEX && (!backEdge->buffer.empty() || !edge->buffer.empty())) {
             // Channel busy, put packet back in node buffer
             node->buffer.push(packet);
             continue;
@@ -325,8 +327,8 @@ void Simulation::processBuffer() {
         // transmission_time = packet_size_bits / bandwidth_bits_per_ms
         // packet_size_bits = packet_size_bytes * 8
         // bandwidth_bits_per_ms = bandwidth_mbps * 1024 * 1024 / 1000 / 8 = bandwidth_mbps * 128
-        double transmissionTime = (double)packet->getPacketSize() * 8.0 / 
-                                  (edge->weight.bandwidth_mbps * 1024.0 * 1024.0 / 1000.0);
+        double transmissionTime = (double)packet->getPacketSize() * 8 / 
+                                  (edge->weight.bandwidth_mbps * 1024.0 / 10);
         int sendTime = (int)ceil(transmissionTime);
         
         packet->setSendingTime(sendTime);
@@ -366,6 +368,12 @@ void Simulation::processEdgeBuffers() {
                 // Check if destination buffer has space
                 if (destNode->buffer.size() < static_cast<size_t>(ROUTER_BUFFER_SIZE)) {
                     destNode->buffer.push(packet);
+
+                    // string path = "";
+                    // if (packet->getType() == VIRTUAL_CHANNEL) {
+                    //     path = getPath(*packet->getRouteTable());
+                    // }
+                    // outputPacketTransmission(packet, u, edge.to, path);
                 } else {
                     cout << "Time " << simulationTime << ": Packet "
                          << packet->getPacketId() << " dropped (buffer full) at node "
@@ -403,20 +411,20 @@ void Simulation::run(const string& outputfile) {
     cout << "\nStarting simulation..." << endl;
     cout << "Output file: " << outputfile << endl << endl;
 
-    int maxIterations = 100000;  // Prevent infinite loops
+    int maxIterations = 10000;  // Prevent infinite loops
     int iterations = 0;
 
     while ((iterations < maxIterations) && (!pq.empty() || hasActivePackets())) {
+        // Process network buffers
+        processEdgeBuffers();
+        processBuffer();
+        
         // Process transactions scheduled for current time
         while (!pq.empty() && pq.top().t <= simulationTime) {
             Transaction trans = pq.top();
             pq.pop();
             processTransaction(trans);
         }
-
-        // Process network buffers
-        processEdgeBuffers();
-        processBuffer();
 
         // Advance time
         simulationTime++;

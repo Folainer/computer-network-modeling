@@ -6,7 +6,7 @@
 int MTU = 1500;
 int ROUTER_BUFFER_SIZE = 10;
 int header_size = 50;
-int TTL = 20;
+int TTL = 200;
 
 // Weight implementation
 Weight::Weight(double latency, double bandwidth)
