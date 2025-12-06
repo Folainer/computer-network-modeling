@@ -75,15 +75,19 @@ private:
     
     // Output helpers
     void outputMessageStart(const Transaction& trans, const string& path);
-    void outputPacketCreation(const shared_ptr<Packet>& packet, int nodeId, 
-                             const string& path, char channelType);
-    void outputPacketTransmission(const shared_ptr<Packet>& packet, 
-                                 int fromNode, int toNode, const string& path);
+    void outputPacketCreation(const shared_ptr<Packet>& packet, int nodeId, const string& path, char channelType);
+    void outputPacketTransmission(const shared_ptr<Packet>& packet, int fromNode, int toNode, const string& path);
+    void outputPacketArrival(const shared_ptr<Packet>& packet, int node, const string& path);
+    void outputPacketFail(const shared_ptr<Packet>& packet, int node, const string& path, string failReason);
     
     // Utility
     string getPath(const vector<int>& routeTable) const;
-    int findNextHop(int currentNode, int destination);
+    int findNextHop(int currentNode, int destination, int seed);
     bool hasActivePackets();
+    void updatePacketSentStats(const shared_ptr<Packet>& packet) const;
+    void updatePacketRecieveStats(const shared_ptr<Packet>& packet) const;
+    void updateDroppedStats(const shared_ptr<Packet>& packet) const;
+    void outputStats() const;
 };
 
 #endif // SIMULATION_HPP

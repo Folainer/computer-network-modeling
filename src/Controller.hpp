@@ -30,6 +30,7 @@ class Controller {
     void displayPathTable(int from) const;
     void displayBackDistance(int from, int to) const;
     void displayBackDistanceTable(int from) const;
+    void displayErrorFrom(int from) const;
 };
 
 #endif

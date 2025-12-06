@@ -4,9 +4,16 @@
 
 // Global variables
 int MTU = 1500;
-int ROUTER_BUFFER_SIZE = 10;
+int ROUTER_BUFFER_SIZE = 250;
 int header_size = 50;
 int TTL = 200;
+
+unordered_map<int, MessageStats> messageStats;
+
+double generateRandomDouble() {
+    // Generate a random value between 0 and 1
+    return static_cast<double>(rand()) / RAND_MAX;
+}
 
 // Weight implementation
 Weight::Weight(double latency, double bandwidth)

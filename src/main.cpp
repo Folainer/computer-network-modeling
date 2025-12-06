@@ -1,9 +1,13 @@
 #include <iostream>
+#include <cstdlib> 
+#include <ctime>
 #include "Controller.hpp"
 
 using namespace std;
 
 int main() {
+    srand(static_cast<unsigned int>(time(0)));
+
     try {
         // Create controller with 24 non-satellite nodes and 2 satellite nodes
         Controller controller(24, 2);

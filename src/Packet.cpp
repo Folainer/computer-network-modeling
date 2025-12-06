@@ -43,3 +43,8 @@ int Packet::getNextNode(const Graph& g, int currentNode) const
         return -1;
     }
 }
+
+void Packet::reset()
+{
+    Packet::nextPacketId = 1;
+}

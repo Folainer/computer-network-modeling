@@ -1,0 +1,13 @@
+"filename", "language", "C++", "comment", "blank", "total"
+"j:\Repositories\computer-network-modeling\src\Controller.cpp", "C++", 283, 3, 50, 336
+"j:\Repositories\computer-network-modeling\src\Controller.hpp", "C++", 27, 0, 8, 35
+"j:\Repositories\computer-network-modeling\src\Global.cpp", "C++", 125, 17, 35, 177
+"j:\Repositories\computer-network-modeling\src\Global.hpp", "C++", 72, 7, 20, 99
+"j:\Repositories\computer-network-modeling\src\Packet.cpp", "C++", 32, 6, 7, 45
+"j:\Repositories\computer-network-modeling\src\Packet.hpp", "C++", 42, 3, 10, 55
+"j:\Repositories\computer-network-modeling\src\PathAlgorithms.cpp", "C++", 96, 7, 39, 142
+"j:\Repositories\computer-network-modeling\src\PathAlgorithms.hpp", "C++", 16, 0, 6, 22
+"j:\Repositories\computer-network-modeling\src\Simulation.cpp", "C++", 323, 40, 83, 446
+"j:\Repositories\computer-network-modeling\src\Simulation.hpp", "C++", 67, 7, 15, 89
+"j:\Repositories\computer-network-modeling\src\main.cpp", "C++", 18, 2, 4, 24
+"Total", "-", 1101, 92, 277, 1470

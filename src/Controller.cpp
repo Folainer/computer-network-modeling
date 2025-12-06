@@ -67,7 +67,11 @@ void Controller::run() {
                     {
                         cout << "The current router buffer size value: " << ROUTER_BUFFER_SIZE << endl;
                     }
-                    else if (command[1] == "fullweight")
+                    else if (command[1] == "ttl")
+                    {
+                        cout << "The current global ttl for new packet has value: " << TTL << endl;
+                    }
+                    else if (command[1] == "full_weight")
                     {
                         displayFullGraphWeights();
                     }
@@ -85,13 +89,17 @@ void Controller::run() {
                     {
                         displayNodeDistance(stoi(command[2]));
                     }
-                    else if (command[1] == "pathtable")
+                    else if (command[1] == "path_table")
                     {
                         displayPathTable(stoi(command[2]));
                     }
-                    else if (command[1] == "backuppathtable")
+                    else if (command[1] == "backup_path_table")
                     {
                         displayBackDistanceTable(stoi(command[2]));
+                    }
+                    else if (command[1] == "error_from")
+                    {
+                        displayErrorFrom(stoi(command[2]));
                     }
                 }
                 else if (commandName == "change")
@@ -103,6 +111,10 @@ void Controller::run() {
                     else if (command[1] == "buffer_size")
                     {
                         ROUTER_BUFFER_SIZE = stoi(command[2]);
+                    }
+                    else if (command[1] == "ttl")
+                    {
+                        TTL = stoi(command[2]);
                     }
                 }
                 else if (commandName == "simulate")
@@ -118,7 +130,7 @@ void Controller::run() {
                     {
                         displayPath(stoi(command[2]), stoi(command[3]));
                     }
-                    else if (command[1] == "backuppath")
+                    else if (command[1] == "backup_path")
                     {
                         displayBackDistance(stoi(command[2]), stoi(command[3]));
                     }
@@ -137,17 +149,20 @@ void Controller::help() const {
     cout << left << setw(indent) << "h|help" << "Shows information about available commands" << endl;
     cout << left << setw(indent) << "show graph" << "Shows information about graph" << endl;
     cout << left << setw(indent) << "show weight" << "Shows information about weights of graph" << endl;
-    cout << left << setw(indent) << "show fullweight" << "Shows information about full weights of graph: latency_ms and bandwidth_mbps" << endl;
+    cout << left << setw(indent) << "show full_weight" << "Shows information about full weights of graph: latency_ms and bandwidth_mbps" << endl;
     cout << left << setw(indent) << "show mtu" << "Shows global mtu in the network" << endl;
     cout << left << setw(indent) << "show buffer_size" << "Shows global router buffer size in the network" << endl;
+    cout << left << setw(indent) << "show ttl" << "Shows global ttl for new packet in the network" << endl;
     cout << left << setw(indent) << "show distance <id>" << "Shows information about dijksta's short path" << endl;
     cout << left << setw(indent) << "show path <from> <to>" << "Shows the shortest path using dijksta's algorithm" << endl;
-    cout << left << setw(indent) << "show pathtable <from>" << "Shows the shortest path table using dijksta's algorithm in a specific router" << endl;
-    cout << left << setw(indent) << "show backuppath <from> <to>" << "Shows the backup path" << endl;
-    cout << left << setw(indent) << "show backuppathtable <from>" << "Shows the backup path table using modified dijksta's algorithm in a specific router" << endl;
+    cout << left << setw(indent) << "show path_table <from>" << "Shows the shortest path table using dijksta's algorithm in a specific router" << endl;
+    cout << left << setw(indent) << "show backup_path <from> <to>" << "Shows the backup path" << endl;
+    cout << left << setw(indent) << "show backup_path_table <from>" << "Shows the backup path table using modified dijksta's algorithm in a specific router" << endl;
+    cout << left << setw(indent) << "show error_from <from>" << "Shows erros in edges from selected node" << endl;
     cout << left << setw(indent) << "change mtu <value>" << "Cahnges global mtu in the network" << endl;
     cout << left << setw(indent) << "change buffer_size <value>" << "Cahnges global router buffer size in the network" << endl;
-    cout << left << setw(indent) << "simulate <ifile> <ofile>" << "Simulates network pockets transmission" << endl;
+    cout << left << setw(indent) << "change ttl" << "Changes global ttl for new packet in the network" << endl;
+    cout << left << setw(indent) << "simulate <ifile> <ofile>" << "Simulates network pockets transmission using input and output files" << endl;
     cout << left << setw(indent) << "e|exit" << "Exits" << endl;
 }
 
@@ -159,12 +174,12 @@ void Controller::initGraph()
 
     int channel_weights[] = {3, 5, 6, 8, 10, 12, 17, 20, 25, 27};
     
-    _graph.addNonDirectedEdge(0, 1, betweenSat, HALF_DUPLEX, r.getValue() * 4 + 1);
-    _graph.addNonDirectedEdge(0, 6, toSat, HALF_DUPLEX, r.getValue() * 4 + 1);
-    _graph.addNonDirectedEdge(0, 11, toSat, HALF_DUPLEX, r.getValue() * 4 + 1);
+    _graph.addNonDirectedEdge(0, 1, betweenSat, HALF_DUPLEX, (r.getValue() + 0.1) / 100.0);
+    _graph.addNonDirectedEdge(0, 6, toSat, HALF_DUPLEX, (r.getValue() + 0.1) / 100.0);
+    _graph.addNonDirectedEdge(0, 11, toSat, HALF_DUPLEX, (r.getValue() + 0.1) / 100.0);
 
-    _graph.addNonDirectedEdge(1, 15, toSat, HALF_DUPLEX, r.getValue()*4 + 1);
-    _graph.addNonDirectedEdge(1, 25, toSat, HALF_DUPLEX, r.getValue()*4 + 1);
+    _graph.addNonDirectedEdge(1, 15, toSat, HALF_DUPLEX, (r.getValue() + 0.1) / 100.0);
+    _graph.addNonDirectedEdge(1, 25, toSat, HALF_DUPLEX, (r.getValue() + 0.1) / 100.0);
 
     // up to 22 is done
     int connectionsHalfDuplex[][2] = {{2, 12}, {2, 9}, {3, 12}, {4, 13}, {5, 6}, {6, 7}, {7, 8}, {7, 23}, {11, 12}, {11, 13}, {15, 17}, {16, 18}, {16, 19}, {16, 22}, {18, 21}, {19, 21}, {19, 22}, {20, 23}, {21, 24}, {22, 25}, {23, 24}, {24, 25}};
@@ -173,13 +188,13 @@ void Controller::initGraph()
     for (auto& connection : connectionsHalfDuplex)
     {
         int rint = (int)(r.getValue()*100) % 10;
-        _graph.addNonDirectedEdge(connection[0], connection[1], Weight(channel_weights[rint], 50), HALF_DUPLEX, r.getValue() * 500 / 100);
+        _graph.addNonDirectedEdge(connection[0], connection[1], Weight(channel_weights[rint], 50), HALF_DUPLEX, (r.getValue() / 10 + 0.01) / 100);
     }
     
     for (auto& connection : connectionsDuplex)
     {
         int rint = (int)(r.getValue()*100) % 10;
-        _graph.addNonDirectedEdge(connection[0], connection[1], Weight(channel_weights[rint], 50), DUPLEX, r.getValue() * 500 / 100);
+        _graph.addNonDirectedEdge(connection[0], connection[1], Weight(channel_weights[rint], 50), DUPLEX, (r.getValue() / 10 + 0.01) / 100);
     }
 }
 
@@ -332,5 +347,25 @@ void Controller::displayBackDistanceTable(int from) const
     for (int i = 0; i < _graph.n; i++)
     {
         displayBackDistance(from, i);
+    }
+}
+
+void Controller::displayErrorFrom(int from) const
+{
+
+    cout << "Edges errors from " << from << " node:" << endl;
+    for (auto edge : this->_graph.adj.at(from))
+    {
+        string typeStr;
+        if (edge.type == DUPLEX)
+        {
+            typeStr = "Duplex";
+        }
+        else 
+        {
+            typeStr = "Half duplex";
+        }
+
+        cout << '[' << from << "->" << edge.to << "] Error probalility: " << round(edge.p_error * 1000 * 100) / 1000.0 << "%, Channel type: " << typeStr << endl;
     }
 }

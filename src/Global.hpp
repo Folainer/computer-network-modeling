@@ -4,6 +4,8 @@
 #include <vector>
 #include <iostream>
 #include <map>
+#include "MessageStats.hpp"
+#include <unordered_map>
 #include <cmath>
 #include <queue>
 #include <memory>
@@ -18,6 +20,9 @@ extern int MTU;
 extern int ROUTER_BUFFER_SIZE;
 extern int header_size;
 extern int TTL;
+extern unordered_map<int, MessageStats> messageStats;
+
+extern double generateRandomDouble();
 
 enum ChannelType { DUPLEX, HALF_DUPLEX };
 enum TransactionType { DATAGRAM, VIRTUAL_CHANNEL };

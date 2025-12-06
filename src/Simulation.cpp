@@ -128,8 +128,7 @@ void Simulation::outputMessageStart(const Transaction& trans, const string& path
          << endl;
 }
 
-void Simulation::outputPacketCreation(const shared_ptr<Packet>& packet, int nodeId,
-                                     const string& path, char channelType) {
+void Simulation::outputPacketCreation(const shared_ptr<Packet>& packet, int nodeId, const string& path, char channelType) {
     file << "P" << channelType << ' '
          << setw(5) << setfill('0') << simulationTime << "t "
          << setw(3) << setfill('0') << packet->getMessageId() << "id "
@@ -141,8 +140,7 @@ void Simulation::outputPacketCreation(const shared_ptr<Packet>& packet, int node
          << endl;
 }
 
-void Simulation::outputPacketTransmission(const shared_ptr<Packet>& packet,
-                                         int fromNode, int toNode, const string& path) {
+void Simulation::outputPacketTransmission(const shared_ptr<Packet>& packet, int fromNode, int toNode, const string& path) {
     file << "PT "
          << setw(5) << setfill('0') << simulationTime << "t "
          << setw(3) << setfill('0') << packet->getMessageId() << "id "
@@ -152,6 +150,54 @@ void Simulation::outputPacketTransmission(const shared_ptr<Packet>& packet,
          << packet->getSrc() << "->" << packet->getDst() << "] "
          << path
          << endl;
+}
+
+void Simulation::outputPacketArrival(const shared_ptr<Packet>& packet, int node, const string& path) {
+    file << "PR " 
+         << setw(5) << setfill('0') << simulationTime << "t "
+         << setw(3) << setfill('0') << packet->getMessageId() << "id "
+         << setw(4) << setfill('0') << packet->getPacketId() << "pid "
+         << packet->getPacketSize() << "w {"
+         << node << "}["
+         << packet->getSrc() << "->" << packet->getDst() << "] "
+         << path
+         << endl;
+}
+
+void Simulation::outputPacketFail(const shared_ptr<Packet>& packet, int node, const string& path, string failReason)
+{
+    file << "PF " 
+         << setw(5) << setfill('0') << simulationTime << "t "
+         << setw(3) << setfill('0') << packet->getMessageId() << "id "
+         << setw(4) << setfill('0') << packet->getPacketId() << "pid "
+         << packet->getPacketSize() << "w {"
+         << node << "}["
+         << packet->getSrc() << "->" << packet->getDst() << "] "
+         << path
+         << endl
+         << '\t' << "Reason: " << failReason
+         << endl;
+}
+
+void Simulation::outputStats() const
+{
+    for (const auto& [id, m] : messageStats) {
+        std::cout << "============================\n";
+        std::cout << " Message ID: " << id << "\n";
+        std::cout << "----------------------------\n";
+        std::cout << " Packets sent:         " << m.packetsSent << "\n";
+        std::cout << " Bytes sent:           " << m.bytesSent << "\n";
+        std::cout << " Total bytes sent:     " << m.bytesTotalSent << "\n";
+        std::cout << " Packets received:     " << m.packetsReceived << "\n";
+        std::cout << " Bytes received:       " << m.bytesReceived << "\n";
+        std::cout << " Total bytes received: " << m.bytesTotalReceived << "\n";
+        std::cout << " Packets dropped:      " << m.packetsDropped << "\n";
+        std::cout << " Delivered:            " << (m.delivered ? "YES" : "NO") << "\n";
+        std::cout << " Delivered percentage: " << (round(((double)m.bytesReceived / m.bytesSent) * 100 * 100)) / 100 << "%\n";
+        std::cout << " First send time:      " << m.firstSendTime << "\n";
+        std::cout << " Delivery time:        " << m.deliveryTime << "\n";
+        std::cout << "============================\n\n";
+    }
 }
 
 void Simulation::processTransaction(Transaction& trans) {
@@ -204,7 +250,7 @@ void Simulation::processTransaction(Transaction& trans) {
         int packetSize;
         int dataSize;
 
-        if (remaining + header_size >= MTU) {
+        if (remaining >= MTU - header_size) {
             packetSize = MTU;
             dataSize = MTU - header_size;
         } else {
@@ -238,11 +284,13 @@ void Simulation::processTransaction(Transaction& trans) {
         if (trans.type == VIRTUAL_CHANNEL) {
             path = getPath(trans.message->getRoute());
         }
+        updatePacketSentStats(packet);
         outputPacketCreation(packet, trans.src, path, channelType);
 
         // Якщо буфер заповнений, переплануйте транзакцію
         if (srcNode->buffer.size() >= static_cast<size_t>(ROUTER_BUFFER_SIZE)) {
             if (trans.message->getDisplacement() < trans.size) {
+                trans.t = simulationTime + 1;
                 pq.push(trans);
             }
             break;
@@ -255,8 +303,25 @@ void Simulation::processTransaction(Transaction& trans) {
     }
 }
 
-int Simulation::findNextHop(int currentNode, int destination) {
-    vector<int> path = controller.findPath(currentNode, destination);
+int Simulation::findNextHop(int currentNode, int destination, int seed) {
+    vector<int> path;
+
+    if (seed % 6 == 0)
+    {
+        path = g.nodes.at(currentNode).findReservedPath(currentNode, destination, g);
+    }
+    else
+    {
+        if (generateRandomDouble() >= 0.10)
+        {
+            path = controller.findPath(currentNode, destination);
+        }
+        else
+        {
+            path = g.nodes.at(currentNode).findReservedPath(currentNode, destination, g);
+        }
+    }
+
     
     if (path.size() < 2) {
         return -1;
@@ -273,19 +338,32 @@ void Simulation::processBuffer() {
         
         shared_ptr<Packet> packet = node->buffer.front();
         node->buffer.pop();
+
+        string path = "";
+        if (packet->getType() == VIRTUAL_CHANNEL) {
+            path = getPath(*packet->getRouteTable());
+        }
         
         // Decrement TTL
         packet->decrementTTL();
         if (packet->getTTL() <= 0) {
-            cout << "Time " << simulationTime << ": Packet " << packet->getPacketId()
-                 << " dropped (TTL expired) at node " << nid << endl;
+            // cout << "Time " << simulationTime << ": Packet " << packet->getPacketId()
+            //      << " dropped (TTL expired) at node " << nid << endl;
+            outputPacketFail(packet, nid, path, string("Packet dropped (ttl expired)"));
+            updateDroppedStats(packet);
             continue;
         }
 
         // Check if packet reached destination
         if (nid == packet->getDst()) {
-            cout << "Time " << simulationTime << ": Packet " << packet->getPacketId()
-                 << " delivered to destination " << nid << endl;
+            // cout << "Time " << simulationTime << ": Packet " << packet->getPacketId()
+            //      << " delivered to destination " << nid << endl;
+            string path = "";
+            if (packet->getType() == VIRTUAL_CHANNEL) {
+                path = getPath(*packet->getRouteTable());
+            }
+            outputPacketArrival(packet, nid, path);
+            updatePacketRecieveStats(packet);
             continue;
         }
 
@@ -297,12 +375,14 @@ void Simulation::processBuffer() {
                 packet->incrementRoutePos();
             }
         } else {
-            nextNode = findNextHop(nid, packet->getDst());
+            nextNode = findNextHop(nid, packet->getDst(), packet->getPacketId());
         }
 
         if (nextNode == -1) {
-            cerr << "Time " << simulationTime << ": No route for packet "
-                 << packet->getPacketId() << " at node " << nid << endl;
+            // cerr << "Time " << simulationTime << ": No route for packet "
+            //      << packet->getPacketId() << " at node " << nid << endl;
+            outputPacketFail(packet, nid, path, string("No route"));
+            updateDroppedStats(packet);
             continue;
         }
 
@@ -311,14 +391,20 @@ void Simulation::processBuffer() {
         Edge* backEdge = g.findEdge(nextNode, nid);
         
         if (!edge) {
-            cerr << "Time " << simulationTime << ": No edge from " << nid
-                 << " to " << nextNode << " (" << packet->getPacketId() << ')' << endl;
+            // cerr << "Time " << simulationTime << ": No edge from " << nid
+            //      << " to " << nextNode << " (" << packet->getPacketId() << ')' << endl;
+            outputPacketFail(packet, nid, path, string("No edge between nodes"));
+            updateDroppedStats(packet);
             continue;
         }
 
         // Check if edge can accept packet (HALF_DUPLEX only allows one packet at a time)
         if (edge->type == HALF_DUPLEX && (!backEdge->buffer.empty() || !edge->buffer.empty())) {
             // Channel busy, put packet back in node buffer
+            if (packet->getType() == VIRTUAL_CHANNEL)
+            {
+                packet->decrementRoutePos();
+            }
             node->buffer.push(packet);
             continue;
         }
@@ -328,7 +414,7 @@ void Simulation::processBuffer() {
         // packet_size_bits = packet_size_bytes * 8
         // bandwidth_bits_per_ms = bandwidth_mbps * 1024 * 1024 / 1000 / 8 = bandwidth_mbps * 128
         double transmissionTime = (double)packet->getPacketSize() * 8 / 
-                                  (edge->weight.bandwidth_mbps * 1024.0 / 10);
+                                  (edge->weight.bandwidth_mbps * 1024.0 * 1024.0 / 1000 / 8);
         int sendTime = (int)ceil(transmissionTime);
         
         packet->setSendingTime(sendTime);
@@ -338,10 +424,6 @@ void Simulation::processBuffer() {
         edge->buffer.push(packet);
 
         // Output transmission
-        string path = "";
-        if (packet->getType() == VIRTUAL_CHANNEL) {
-            path = getPath(*packet->getRouteTable());
-        }
         outputPacketTransmission(packet, nid, nextNode, path);
     }
 }
@@ -357,16 +439,34 @@ void Simulation::processEdgeBuffers() {
             // Check if transmission is complete
             if (packet->getTransmissionUntil() <= simulationTime) {
                 edge.buffer.pop();
+
+                string path = "";
+                if (packet->getType() == VIRTUAL_CHANNEL) {
+                    path = getPath(*packet->getRouteTable());
+                }
                 
                 Node* destNode = g.getNode(edge.to);
                 if (!destNode) {
                     cerr << "Time " << simulationTime << ": Destination node "
                          << edge.to << " not found" << endl;
+                    outputPacketFail(packet, edge.to, path, string("Destination not found"));
+                    updateDroppedStats(packet);
                     continue;
                 }
+
+                // Random rint(0.31);
                 
                 // Check if destination buffer has space
                 if (destNode->buffer.size() < static_cast<size_t>(ROUTER_BUFFER_SIZE)) {
+                    double randomValue = generateRandomDouble();
+                    if (randomValue <= edge.p_error)
+                    {
+                        // cerr << "Time " << simulationTime << ": Packet " << packet->getPacketId() << " on destination node [" << edge.to << "] has error" << endl;
+                        // outputPacketFail(packet, edge.to, path, string("Error occured"));
+                        updateDroppedStats(packet);
+                        continue;
+                    }
+
                     destNode->buffer.push(packet);
 
                     // string path = "";
@@ -375,13 +475,63 @@ void Simulation::processEdgeBuffers() {
                     // }
                     // outputPacketTransmission(packet, u, edge.to, path);
                 } else {
-                    cout << "Time " << simulationTime << ": Packet "
-                         << packet->getPacketId() << " dropped (buffer full) at node "
-                         << edge.to << endl;
+                    // cout << "Time " << simulationTime << ": Packet "
+                    //      << packet->getPacketId() << " dropped (buffer full) at node "
+                    //      << edge.to << endl;
+                    outputPacketFail(packet, edge.to, path, string("Packet dropped (buffer full)"));
+                    updateDroppedStats(packet);
                 }
             }
         }
     }
+}
+
+void Simulation::updatePacketSentStats(const shared_ptr<Packet>& packet) const
+{
+    bool isCreated = false;
+
+    if (messageStats.find(packet->getMessageId()) != messageStats.end())
+    {
+        isCreated = true;
+    }
+
+    auto& stats = messageStats[packet->getMessageId()];
+    
+    if (!isCreated) {
+        stats.firstSendTime = simulationTime;
+    }
+
+    stats.packetsSent++;
+    stats.bytesSent += packet->getPacketSize() - header_size;
+    stats.bytesTotalSent += packet->getPacketSize();
+}
+
+void Simulation::updatePacketRecieveStats(const shared_ptr<Packet>& packet) const
+{
+    auto& stats = messageStats[packet->getMessageId()];
+
+    stats.packetsReceived++;
+    stats.deliveryTime = simulationTime;
+    stats.bytesReceived += packet->getPacketSize() - header_size;
+    stats.bytesTotalReceived += packet->getPacketSize();
+
+    if (stats.packetsSent == stats.packetsReceived)
+    {
+        stats.delivered = true;
+    }
+    else
+    {
+        stats.delivered = false;
+    }
+}
+
+void Simulation::updateDroppedStats(const shared_ptr<Packet>& packet) const
+{
+    auto& stats = messageStats[packet->getMessageId()];
+    
+    stats.delivered = false;
+    stats.deliveryTime = simulationTime;
+    stats.packetsDropped++;
 }
 
 bool Simulation::hasActivePackets() {
@@ -401,6 +551,8 @@ bool Simulation::hasActivePackets() {
 }
 
 void Simulation::run(const string& outputfile) {
+    messageStats.clear();
+    Packet::reset();
     file.open(outputfile);
     
     if (!file.is_open()) {
@@ -411,7 +563,7 @@ void Simulation::run(const string& outputfile) {
     cout << "\nStarting simulation..." << endl;
     cout << "Output file: " << outputfile << endl << endl;
 
-    int maxIterations = 10000;  // Prevent infinite loops
+    int maxIterations = 100000;  // Prevent infinite loops
     int iterations = 0;
 
     while ((iterations < maxIterations) && (!pq.empty() || hasActivePackets())) {
@@ -438,5 +590,7 @@ void Simulation::run(const string& outputfile) {
     file.close();
     cout << "\nSimulation completed at time " << simulationTime << endl;
     cout << "Total iterations: " << iterations << endl;
-    cout << "Output written to " << outputfile << endl;
+    cout << "Output written to " << outputfile << endl << endl;;
+
+    outputStats();
 }

@@ -12,6 +12,7 @@ class Graph;
 class Packet {
 public:
     static Packet create(int src, int dst, int packetSize, int messageId, int type, const std::vector<int>* routeTable);
+    static void reset();
 
     int getPacketId() const { return packetId; }
     int getMessageId() const { return messageId; }
@@ -29,6 +30,7 @@ public:
     // const std::vector<int>* getRouteTable() const { return routeTable; }
     int getNextNode(const Graph& g, int currentNode) const;
     void incrementRoutePos() { routePos++; }
+    void decrementRoutePos() { routePos--; }
     ~Packet();
     
 private:
