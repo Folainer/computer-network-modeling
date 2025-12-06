@@ -116,24 +116,37 @@ string Simulation::getPath(const vector<int>& routeTable) const {
     return oss.str();
 }
 
+void Simulation::outputFileFields()
+{
+    file << "type "
+         << " time "
+         << "msg_id "
+         << "pck_id "
+         << "      size "
+         << endl;
+}
+
 void Simulation::outputMessageStart(const Transaction& trans, const string& path) {
-    char channelType = (trans.type == VIRTUAL_CHANNEL) ? '+' : '-';
+    string channel = (trans.type == VIRTUAL_CHANNEL) ? "V" : "D";
     
-    file << "M" << channelType << ' '
-         << setw(5) << setfill('0') << simulationTime << "t "
-         << setw(3) << setfill('0') << trans.id << "id "
-         << trans.size << "w ["
+    file << "MC" << channel << "  " 
+         << setw(5) << setfill(' ') << simulationTime << ' '
+         << setw(6) << setfill(' ') << trans.id << ' '
+         << setw(6) << setfill(' ') << '-' << ' '
+         << setw(10) << setfill(' ') << trans.size << " ["
          << trans.src << "->" << trans.dst << "] "
          << path
          << endl;
 }
 
-void Simulation::outputPacketCreation(const shared_ptr<Packet>& packet, int nodeId, const string& path, char channelType) {
-    file << "P" << channelType << ' '
-         << setw(5) << setfill('0') << simulationTime << "t "
-         << setw(3) << setfill('0') << packet->getMessageId() << "id "
-         << setw(4) << setfill('0') << packet->getPacketId() << "pid "
-         << packet->getPacketSize() << "w {"
+void Simulation::outputPacketCreation(const shared_ptr<Packet>& packet, int nodeId, const string& path) {
+    string channel = (packet->getType() == VIRTUAL_CHANNEL) ? "V" : "D";
+    
+    file << "PC" << channel << "  "
+         << setw(5) << setfill(' ') << simulationTime << ' '
+         << setw(6) << setfill(' ') << packet->getMessageId() << ' '
+         << setw(6) << setfill(' ') << packet->getPacketId() << ' '
+         << setw(10) << setfill(' ') << packet->getPacketSize() << " {"
          << nodeId << "}["
          << packet->getSrc() << "->" << packet->getDst() << "] "
          << path
@@ -141,11 +154,13 @@ void Simulation::outputPacketCreation(const shared_ptr<Packet>& packet, int node
 }
 
 void Simulation::outputPacketTransmission(const shared_ptr<Packet>& packet, int fromNode, int toNode, const string& path) {
-    file << "PT "
-         << setw(5) << setfill('0') << simulationTime << "t "
-         << setw(3) << setfill('0') << packet->getMessageId() << "id "
-         << setw(4) << setfill('0') << packet->getPacketId() << "pid "
-         << packet->getPacketSize() << "w {"
+    string channel = (packet->getType() == VIRTUAL_CHANNEL) ? "V" : "D";
+
+    file << "PT" << channel << "  "
+         << setw(5) << setfill(' ') << simulationTime << ' '
+         << setw(6) << setfill(' ') << packet->getMessageId() << ' '
+         << setw(6) << setfill(' ') << packet->getPacketId() << ' '
+         << setw(10) << setfill(' ') << packet->getPacketSize() << " {"
          << fromNode << "->" << toNode << "}["
          << packet->getSrc() << "->" << packet->getDst() << "] "
          << path
@@ -153,11 +168,13 @@ void Simulation::outputPacketTransmission(const shared_ptr<Packet>& packet, int 
 }
 
 void Simulation::outputPacketArrival(const shared_ptr<Packet>& packet, int node, const string& path) {
-    file << "PR " 
-         << setw(5) << setfill('0') << simulationTime << "t "
-         << setw(3) << setfill('0') << packet->getMessageId() << "id "
-         << setw(4) << setfill('0') << packet->getPacketId() << "pid "
-         << packet->getPacketSize() << "w {"
+    string channel = (packet->getType() == VIRTUAL_CHANNEL) ? "V" : "D";
+    
+    file << "PR" << channel << "  "
+         << setw(5) << setfill(' ') << simulationTime << ' '
+         << setw(6) << setfill(' ') << packet->getMessageId() << ' '
+         << setw(6) << setfill(' ') << packet->getPacketId() << ' '
+         << setw(10) << setfill(' ') << packet->getPacketSize() << " {"
          << node << "}["
          << packet->getSrc() << "->" << packet->getDst() << "] "
          << path
@@ -166,16 +183,18 @@ void Simulation::outputPacketArrival(const shared_ptr<Packet>& packet, int node,
 
 void Simulation::outputPacketFail(const shared_ptr<Packet>& packet, int node, const string& path, string failReason)
 {
-    file << "PF " 
-         << setw(5) << setfill('0') << simulationTime << "t "
-         << setw(3) << setfill('0') << packet->getMessageId() << "id "
-         << setw(4) << setfill('0') << packet->getPacketId() << "pid "
-         << packet->getPacketSize() << "w {"
+    string channel = (packet->getType() == VIRTUAL_CHANNEL) ? "V" : "D";
+
+    file << "PF" << channel << "  "
+         << setw(5) << setfill(' ') << simulationTime << ' '
+         << setw(6) << setfill(' ') << packet->getMessageId() << ' '
+         << setw(6) << setfill(' ') << packet->getPacketId() << ' '
+         << setw(10) << setfill(' ') << packet->getPacketSize() << " {"
          << node << "}["
          << packet->getSrc() << "->" << packet->getDst() << "] "
          << path
          << endl
-         << '\t' << "Reason: " << failReason
+         << '\t' << "Failed reason: " << failReason
          << endl;
 }
 
@@ -201,8 +220,6 @@ void Simulation::outputStats() const
 }
 
 void Simulation::processTransaction(Transaction& trans) {
-    char channelType = (trans.type == VIRTUAL_CHANNEL) ? '+' : '-';
-    
     // Отримати вузол джерела
     Node* srcNode = g.getNode(trans.src);
     if (!srcNode) {
@@ -239,6 +256,13 @@ void Simulation::processTransaction(Transaction& trans) {
             cout << ", path=" << path;
         }
         cout << endl;
+    }
+
+    if (srcNode->buffer.size() >= static_cast<size_t>(ROUTER_BUFFER_SIZE))
+    {
+        trans.t = simulationTime + 1;
+        pq.push(trans);
+        return;
     }
     
     // Створити пакети, поки в буфері є місце і повідомлення не завершено
@@ -285,7 +309,7 @@ void Simulation::processTransaction(Transaction& trans) {
             path = getPath(trans.message->getRoute());
         }
         updatePacketSentStats(packet);
-        outputPacketCreation(packet, trans.src, path, channelType);
+        outputPacketCreation(packet, trans.src, path);
 
         // Якщо буфер заповнений, переплануйте транзакцію
         if (srcNode->buffer.size() >= static_cast<size_t>(ROUTER_BUFFER_SIZE)) {
@@ -306,13 +330,20 @@ void Simulation::processTransaction(Transaction& trans) {
 int Simulation::findNextHop(int currentNode, int destination, int seed) {
     vector<int> path;
 
-    if (seed % 6 == 0)
+    if (seed % 2 == 0)
     {
-        path = g.nodes.at(currentNode).findReservedPath(currentNode, destination, g);
+        if (generateRandomDouble() >= 0.10)
+        {
+            path = controller.findPath(currentNode, destination);
+        }
+        else
+        {
+            path = g.nodes.at(currentNode).findReservedPath(currentNode, destination, g);
+        }
     }
     else
     {
-        if (generateRandomDouble() >= 0.10)
+        if (generateRandomDouble() >= 0.05)
         {
             path = controller.findPath(currentNode, destination);
         }
@@ -454,8 +485,6 @@ void Simulation::processEdgeBuffers() {
                     continue;
                 }
 
-                // Random rint(0.31);
-                
                 // Check if destination buffer has space
                 if (destNode->buffer.size() < static_cast<size_t>(ROUTER_BUFFER_SIZE)) {
                     double randomValue = generateRandomDouble();
@@ -463,6 +492,7 @@ void Simulation::processEdgeBuffers() {
                     {
                         // cerr << "Time " << simulationTime << ": Packet " << packet->getPacketId() << " on destination node [" << edge.to << "] has error" << endl;
                         // outputPacketFail(packet, edge.to, path, string("Error occured"));
+                        outputPacketFail(packet, edge.to, path, string("Error has occured"));
                         updateDroppedStats(packet);
                         continue;
                     }
@@ -560,11 +590,14 @@ void Simulation::run(const string& outputfile) {
         return;
     }
 
+    outputFileFields();
+
     cout << "\nStarting simulation..." << endl;
     cout << "Output file: " << outputfile << endl << endl;
 
     int maxIterations = 100000;  // Prevent infinite loops
     int iterations = 0;
+
 
     while ((iterations < maxIterations) && (!pq.empty() || hasActivePackets())) {
         // Process network buffers

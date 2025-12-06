@@ -1,0 +1,2 @@
+simulate test.simc test_output.simo
+e

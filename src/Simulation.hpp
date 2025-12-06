@@ -74,8 +74,9 @@ private:
     void processEdgeBuffers();
     
     // Output helpers
+    void outputFileFields();
     void outputMessageStart(const Transaction& trans, const string& path);
-    void outputPacketCreation(const shared_ptr<Packet>& packet, int nodeId, const string& path, char channelType);
+    void outputPacketCreation(const shared_ptr<Packet>& packet, int nodeId, const string& path);
     void outputPacketTransmission(const shared_ptr<Packet>& packet, int fromNode, int toNode, const string& path);
     void outputPacketArrival(const shared_ptr<Packet>& packet, int node, const string& path);
     void outputPacketFail(const shared_ptr<Packet>& packet, int node, const string& path, string failReason);
