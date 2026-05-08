@@ -15,7 +15,7 @@
 
 using namespace std;
 
-// Global configuration
+// Глобальна конфігурація
 extern int MTU;
 extern int ROUTER_BUFFER_SIZE;
 extern int header_size;
@@ -27,13 +27,12 @@ extern double generateRandomDouble();
 enum ChannelType { DUPLEX, HALF_DUPLEX };
 enum TransactionType { DATAGRAM, VIRTUAL_CHANNEL };
 
-// Forward declarations
 class Graph;
 class Node;
 class Edge;
 class Packet;
 
-// Weight structure for edges
+// Структура ваг для ребер
 struct Weight {
     double latency_ms;
     double bandwidth_mbps;
@@ -42,7 +41,7 @@ struct Weight {
     double calculate() const;
 };
 
-// Edge in the graph
+// Ребро у графі
 class Edge {
 public:
     int to;
@@ -58,7 +57,7 @@ private:
     static int nextId;
 };
 
-// Node in the graph
+// Вузол у графі
 class Node {
 public:
     bool isSatellite;
@@ -73,7 +72,7 @@ public:
     bool isCalculated() const;
 };
 
-// Graph structure
+// Структура графу
 class Graph {
 public:
     int n;

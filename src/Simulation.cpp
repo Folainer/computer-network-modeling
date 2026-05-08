@@ -332,7 +332,7 @@ int Simulation::findNextHop(int currentNode, int destination, int seed) {
 
     if (seed % 2 == 0)
     {
-        if (generateRandomDouble() >= 0.10)
+        if (generateRandomDouble() >= 0.15)
         {
             path = controller.findPath(currentNode, destination);
         }
@@ -343,7 +343,7 @@ int Simulation::findNextHop(int currentNode, int destination, int seed) {
     }
     else
     {
-        if (generateRandomDouble() >= 0.05)
+        if (generateRandomDouble() >= 0.075)
         {
             path = controller.findPath(currentNode, destination);
         }
@@ -362,7 +362,7 @@ int Simulation::findNextHop(int currentNode, int destination, int seed) {
 }
 
 void Simulation::processBuffer() {
-    // Process node buffers - forward packets to edges
+    // Опрацювати буфери вузлів
     for (int nid = 0; nid < g.n; nid++) {
         Node* node = g.getNode(nid);
         if (!node || node->buffer.empty()) continue;
@@ -375,20 +375,16 @@ void Simulation::processBuffer() {
             path = getPath(*packet->getRouteTable());
         }
         
-        // Decrement TTL
+        // Зменшити TTL
         packet->decrementTTL();
         if (packet->getTTL() <= 0) {
-            // cout << "Time " << simulationTime << ": Packet " << packet->getPacketId()
-            //      << " dropped (TTL expired) at node " << nid << endl;
             outputPacketFail(packet, nid, path, string("Packet dropped (ttl expired)"));
             updateDroppedStats(packet);
             continue;
         }
 
-        // Check if packet reached destination
+        // Перевірити якщо пакет досягнув пункту призначення
         if (nid == packet->getDst()) {
-            // cout << "Time " << simulationTime << ": Packet " << packet->getPacketId()
-            //      << " delivered to destination " << nid << endl;
             string path = "";
             if (packet->getType() == VIRTUAL_CHANNEL) {
                 path = getPath(*packet->getRouteTable());
@@ -398,7 +394,7 @@ void Simulation::processBuffer() {
             continue;
         }
 
-        // Determine next hop
+        // Визначити наступний перехід
         int nextNode = -1;
         if (packet->getType() == VIRTUAL_CHANNEL) {
             nextNode = packet->getNextNode(g, nid);
@@ -410,28 +406,24 @@ void Simulation::processBuffer() {
         }
 
         if (nextNode == -1) {
-            // cerr << "Time " << simulationTime << ": No route for packet "
-            //      << packet->getPacketId() << " at node " << nid << endl;
             outputPacketFail(packet, nid, path, string("No route"));
             updateDroppedStats(packet);
             continue;
         }
 
-        // Find edge to next node
+        // Знайти канал до наступного вузла
         Edge* edge = g.findEdge(nid, nextNode);
         Edge* backEdge = g.findEdge(nextNode, nid);
         
         if (!edge) {
-            // cerr << "Time " << simulationTime << ": No edge from " << nid
-            //      << " to " << nextNode << " (" << packet->getPacketId() << ')' << endl;
             outputPacketFail(packet, nid, path, string("No edge between nodes"));
             updateDroppedStats(packet);
             continue;
         }
 
-        // Check if edge can accept packet (HALF_DUPLEX only allows one packet at a time)
+        // Перевірити якщо ребро може прийти пакет (Напвідуплекс дозволяє отримувати лише один паке за раз)
         if (edge->type == HALF_DUPLEX && (!backEdge->buffer.empty() || !edge->buffer.empty())) {
-            // Channel busy, put packet back in node buffer
+            // Канал зайняти, покласти пакет назав в буфер вузла
             if (packet->getType() == VIRTUAL_CHANNEL)
             {
                 packet->decrementRoutePos();
@@ -440,8 +432,8 @@ void Simulation::processBuffer() {
             continue;
         }
 
-        // Calculate transmission time
-        // transmission_time = packet_size_bits / bandwidth_bits_per_ms
+        // Разувати transmissionTime
+        // transmissionTime = packet_size_bits / bandwidth_bits_per_ms
         // packet_size_bits = packet_size_bytes * 8
         // bandwidth_bits_per_ms = bandwidth_mbps * 1024 * 1024 / 1000 / 8 = bandwidth_mbps * 128
         double transmissionTime = (double)packet->getPacketSize() * 8 / 
@@ -451,7 +443,7 @@ void Simulation::processBuffer() {
         packet->setSendingTime(sendTime);
         packet->setTransmissionUntil(simulationTime + (long)edge->weight.latency_ms + sendTime);
 
-        // Add to edge buffer
+        // Додати до буфера ребра
         edge->buffer.push(packet);
 
         // Output transmission
@@ -460,14 +452,14 @@ void Simulation::processBuffer() {
 }
 
 void Simulation::processEdgeBuffers() {
-    // Process edge buffers - move packets to destination nodes when transmission completes
+    // Опрацювати бувер ребер 
     for (int u = 0; u < g.n; u++) {
         for (auto& edge : g.adj[u]) {
             if (edge.buffer.empty()) continue;
             
             shared_ptr<Packet> packet = edge.buffer.front();
             
-            // Check if transmission is complete
+            // Перевірити якщо передача завершена
             if (packet->getTransmissionUntil() <= simulationTime) {
                 edge.buffer.pop();
 
@@ -485,29 +477,18 @@ void Simulation::processEdgeBuffers() {
                     continue;
                 }
 
-                // Check if destination buffer has space
+                // Перевірити якщо буфер пункту призначення має місце
                 if (destNode->buffer.size() < static_cast<size_t>(ROUTER_BUFFER_SIZE)) {
                     double randomValue = generateRandomDouble();
                     if (randomValue <= edge.p_error)
                     {
-                        // cerr << "Time " << simulationTime << ": Packet " << packet->getPacketId() << " on destination node [" << edge.to << "] has error" << endl;
-                        // outputPacketFail(packet, edge.to, path, string("Error occured"));
                         outputPacketFail(packet, edge.to, path, string("Error has occured"));
                         updateDroppedStats(packet);
                         continue;
                     }
 
                     destNode->buffer.push(packet);
-
-                    // string path = "";
-                    // if (packet->getType() == VIRTUAL_CHANNEL) {
-                    //     path = getPath(*packet->getRouteTable());
-                    // }
-                    // outputPacketTransmission(packet, u, edge.to, path);
                 } else {
-                    // cout << "Time " << simulationTime << ": Packet "
-                    //      << packet->getPacketId() << " dropped (buffer full) at node "
-                    //      << edge.to << endl;
                     outputPacketFail(packet, edge.to, path, string("Packet dropped (buffer full)"));
                     updateDroppedStats(packet);
                 }
@@ -595,23 +576,23 @@ void Simulation::run(const string& outputfile) {
     cout << "\nStarting simulation..." << endl;
     cout << "Output file: " << outputfile << endl << endl;
 
-    int maxIterations = 100000;  // Prevent infinite loops
+    int maxIterations = 100000;  // Уникнути безкінечного циклу
     int iterations = 0;
 
 
     while ((iterations < maxIterations) && (!pq.empty() || hasActivePackets())) {
-        // Process network buffers
+        // Опрацбвати буфери мережі
         processEdgeBuffers();
         processBuffer();
         
-        // Process transactions scheduled for current time
+        // Опрацювати транзакції що заплановані на даний момент часу
         while (!pq.empty() && pq.top().t <= simulationTime) {
             Transaction trans = pq.top();
             pq.pop();
             processTransaction(trans);
         }
 
-        // Advance time
+        // Пересунути час
         simulationTime++;
         iterations++;
     }

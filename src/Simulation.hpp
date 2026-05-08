@@ -15,7 +15,7 @@
 
 class Controller;
 
-// Message represents data being transmitted
+// Повідомлення представляє дані, що передаються
 class Message {
 public:
     Message(int messageSize, int messageId, TransactionType type);
@@ -38,7 +38,7 @@ private:
     vector<int> routeTable;
 };
 
-// Transaction represents a network transmission request
+// Транзакція представляє запит на передачу в мережі
 struct Transaction {
     int t;
     int src;
@@ -52,7 +52,7 @@ struct Transaction {
     bool operator<(const Transaction& other) const;
 };
 
-// Network simulation engine
+// Мережевий симулятор
 class Simulation {
 public:
     Simulation(const string& inputfile, Graph& graph, Controller& controller);
@@ -65,15 +65,15 @@ private:
     long simulationTime;
     ofstream file;
     
-    // File parsing
+    // Парсинг файлу
     vector<Transaction> parseTransactionFile(const string& filepath);
     
-    // Processing
+    // Опрацьовання
     void processTransaction(Transaction& trans);
     void processBuffer();
     void processEdgeBuffers();
     
-    // Output helpers
+    // Допоміжні засоби виводу
     void outputFileFields();
     void outputMessageStart(const Transaction& trans, const string& path);
     void outputPacketCreation(const shared_ptr<Packet>& packet, int nodeId, const string& path);
@@ -81,7 +81,7 @@ private:
     void outputPacketArrival(const shared_ptr<Packet>& packet, int node, const string& path);
     void outputPacketFail(const shared_ptr<Packet>& packet, int node, const string& path, string failReason);
     
-    // Utility
+    // Утиліта
     string getPath(const vector<int>& routeTable) const;
     int findNextHop(int currentNode, int destination, int seed);
     bool hasActivePackets();

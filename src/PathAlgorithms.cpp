@@ -26,7 +26,7 @@ pair<vector<long long>, vector<int>> PathAlgorithm::dijkstra(
         if (d > dist[u]) continue;
 
         for (const auto& e : g.adj[u]) {
-            // Check if edge is disabled
+            // Перевірити якщо ребро вимкнуте
             if (e.id >= 0 && e.id < (int)disableEdge.size() && disableEdge[e.id]) {
                 continue;
             }
@@ -34,13 +34,13 @@ pair<vector<long long>, vector<int>> PathAlgorithm::dijkstra(
             int v = e.to;
             long long weight = e.weight.calculate();
             
-            // Handle INF weight
+            // Опрацювати безкінечну вагу
             if (weight >= INF || d >= INF) continue;
             
             long long nd = d + weight;
             
-            // Check for overflow
-            if (nd < d) continue;  // Overflow occurred
+            // Перевірити на переповнення
+            if (nd < d) continue;  
 
             if (nd < dist[v]) {
                 dist[v] = nd;
@@ -66,13 +66,13 @@ vector<int> PathAlgorithm::reconstruct_nodes_from_parentEdges(
     int cur = target;
     nodes.push_back(cur);
     
-    // If no parent, this is the source itself
+    // Якщо не має предка, це є джерелом
     if (parentEdge[cur] == -1) {
         return nodes;
     }
 
-    // Trace back through parent edges
-    int maxSteps = parentEdge.size();  // Prevent infinite loops
+    // Повернитися назад через батківські ребра
+    int maxSteps = parentEdge.size(); 
     int steps = 0;
     
     while (parentEdge[cur] != -1 && steps < maxSteps) {
@@ -85,7 +85,7 @@ vector<int> PathAlgorithm::reconstruct_nodes_from_parentEdges(
         int parent = edgeEndpoints[eid].first;
         
         if (parent == cur) {
-            break; // Avoid infinite loop
+            break; // Уникнути безкінечного циклу
         }
         
         nodes.push_back(parent);
@@ -109,13 +109,13 @@ vector<int> PathAlgorithm::reconstruct_edges_from_parentEdges(
     
     int cur = target;
     
-    // If no parent, this is the source itself
+    // Якщо не має предка, то це є саме джерелом
     if (parentEdge[cur] == -1) {
         return edges;
     }
 
-    // Collect edge IDs
-    int maxSteps = parentEdge.size();  // Prevent infinite loops
+    // Зібрати ідентифікатори ребер
+    int maxSteps = parentEdge.size();  // Уникнути безкінечного циклу
     int steps = 0;
     
     while (parentEdge[cur] != -1 && steps < maxSteps) {
@@ -130,7 +130,7 @@ vector<int> PathAlgorithm::reconstruct_edges_from_parentEdges(
         int parent = edgeEndpoints[eid].first;
         
         if (parent == cur) {
-            break; // Avoid infinite loop
+            break; // Уникнути безкінечного циклу
         }
         
         cur = parent;

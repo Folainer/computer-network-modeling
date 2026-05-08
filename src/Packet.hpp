@@ -1,8 +1,6 @@
-// Packet.hpp - small header for Packet class used by Global and Simulation
 #ifndef PACKET_HPP
 #define PACKET_HPP
 
-// Avoid including Global.hpp here to prevent circular include (Global.hpp includes Packet.hpp).
 #include <vector>
 #include <memory>
 
@@ -27,7 +25,6 @@ public:
     int getDst() const { return dst; }
     void decrementTTL() { ttl--; }
     const std::shared_ptr<const std::vector<int>>& getRouteTable() const { return routeTable; }
-    // const std::vector<int>* getRouteTable() const { return routeTable; }
     int getNextNode(const Graph& g, int currentNode) const;
     void incrementRoutePos() { routePos++; }
     void decrementRoutePos() { routePos--; }

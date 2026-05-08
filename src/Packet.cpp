@@ -2,10 +2,9 @@
 #include "Global.hpp"
 #include "Simulation.hpp"
 
-// Packet static member initialization
 int Packet::nextPacketId = 1;
 
-// Packet implementation
+// Реалізація пакету
 Packet::Packet(int packetId, int src, int dst, int packetSize, int messageId, int type, const std::vector<int>* routeTable)
     : packetId(packetId), src(src), dst(dst), packetSize(packetSize), messageId(messageId), type(type), transmissionUntil(0), sendingTime(0), ttl(TTL), routePos(0)
 {
@@ -31,15 +30,13 @@ Packet Packet::create(int src, int dst, int packetSize, int messageId, int type,
 int Packet::getNextNode(const Graph& g, int currentNode) const 
 {
     if (type == VIRTUAL_CHANNEL) {
-        // Use fixed route table
-        // cout << (int)routeTable->size() << endl;
+        // Використовувати фіксований маршрут
         if (routeTable && routePos + 1 < (int)routeTable->size()) {
             return (*routeTable)[routePos + 1];
         }
         return -1;
     } else {
-        // DATAGRAM: use node's routing table to determine next hop
-        // This will be handled by the router logic, return -1 here
+        // Маршрут буде призначений маршрутизатором
         return -1;
     }
 }

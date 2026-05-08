@@ -9,9 +9,6 @@ Controller::Controller(int nonSatelliteNodeCount, int satelliteCount)
 }
 
 void Controller::run() {
-    // std::vector<Transaction> transactions = parseTransactionFile("test.simc");
-    // printTransactions(transactions);
-
     while (true)
     {
         cout << "Folainer$: ";
@@ -181,7 +178,6 @@ void Controller::initGraph()
     _graph.addNonDirectedEdge(1, 15, toSat, HALF_DUPLEX, (r.getValue() + 0.1) / 100.0);
     _graph.addNonDirectedEdge(1, 25, toSat, HALF_DUPLEX, (r.getValue() + 0.1) / 100.0);
 
-    // up to 22 is done
     int connectionsHalfDuplex[][2] = {{2, 12}, {2, 9}, {3, 12}, {4, 13}, {5, 6}, {6, 7}, {7, 8}, {7, 23}, {11, 12}, {11, 13}, {15, 17}, {16, 18}, {16, 19}, {16, 22}, {18, 21}, {19, 21}, {19, 22}, {20, 23}, {21, 24}, {22, 25}, {23, 24}, {24, 25}};
     int connectionsDuplex[][2] = {{2, 3}, {3, 5}, {4, 5}, {4, 8}, {8, 9}, {9, 10}, {10, 13}, {10, 14}, {14, 15}, {14, 17}, {17, 20}, {18, 20}};
 

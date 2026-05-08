@@ -2,7 +2,7 @@
 #include "PathAlgorithms.hpp"
 #include "Packet.hpp"
 
-// Global variables
+// Глобальні змінні
 int MTU = 1500;
 int ROUTER_BUFFER_SIZE = 250;
 int header_size = 50;
@@ -11,11 +11,11 @@ int TTL = 200;
 unordered_map<int, MessageStats> messageStats;
 
 double generateRandomDouble() {
-    // Generate a random value between 0 and 1
+    // Генерувати випадкове число між 0 та 1
     return static_cast<double>(rand()) / RAND_MAX;
 }
 
-// Weight implementation
+// Реалізація ваг
 Weight::Weight(double latency, double bandwidth)
     : latency_ms(latency), bandwidth_mbps(bandwidth) {}
 
@@ -24,13 +24,13 @@ double Weight::calculate() const {
     return round(10.0 * latency_ms / bandwidth_mbps + 1.0);
 }
 
-// Edge implementation
+// Реалізація каналів зв'язку (ребер)
 int Edge::nextId = 0;
 
 Edge::Edge(int to, const Weight& w, ChannelType ct, double pe)
     : to(to), id(nextId++), weight(w), type(ct), p_error(pe) {}
 
-// Node implementation
+// Реалізація маршрутизаторів (вузлів)
 Node::Node(bool isSatellite)
     : isSatellite(isSatellite) {}
 
@@ -44,16 +44,14 @@ void Node::fillTable(const Graph& g, int id) {
 vector<int> Node::findReservedPath(int source, int target, const Graph& g) {
     vector<bool> disabled(g.edgeEndpoints.size(), false);
 
-    // Calculate primary path if not already done
+    // Рахувати основний шлях якщо не він необрахований
     if (!isCalculated()) {
-        // Need to modify this node's tables, but we're in a const method context
-        // We need to cast away constness here since we're modifying cache
         Node* mutableThis = const_cast<Node*>(this);
         mutableThis->fillTable(g, source);
     }
 
-    // Get primary path and disable its edges
-    // Reconstruct the path from source to target
+    // Отримати основий шлях і вимкунти ребра
+    // Реконструювати шлях із джерела до місце призначення
     int cur = target;
     while (cur != source && parentTable[cur] != -1) {
         int eid = parentTable[cur];
@@ -68,7 +66,7 @@ vector<int> Node::findReservedPath(int source, int target, const Graph& g) {
         }
     }
 
-    // Find backup path with primary path disabled
+    // Знайти резервний шлях із основним вимкнутим
     auto [dist, parentEdge] = PathAlgorithm::dijkstra(g, source, disabled);
 
     if (dist.empty() || target >= (int)dist.size() || dist[target] == INF) {
@@ -83,16 +81,16 @@ bool Node::isCalculated() const {
     return !distTable.empty();
 }
 
-// Graph implementation
+// Реалізація графу
 Graph::Graph(int nonSatelliteNodeCount, int satelliteCount)
     : n(nonSatelliteNodeCount + satelliteCount), adj(n) {
     
-    // Create satellite nodes (indices 0 to satelliteCount-1)
+    // Стоврити супутникові вузли
     for (int i = 0; i < satelliteCount; i++) {
         nodes.emplace(i, Node(true));
     }
     
-    // Create non-satellite nodes (indices satelliteCount to n-1)
+    // Створити несупутникові вузли
     for (int i = 0; i < nonSatelliteNodeCount; i++) {
         nodes.emplace(satelliteCount + i, Node(false));
     }
@@ -105,11 +103,11 @@ void Graph::addNonDirectedEdge(int u, int v, const Weight& weight,
         return;
     }
 
-    // Add edge u -> v
+    // Додати ребро u -> v
     adj[u].emplace_back(v, weight, ct, p_error);
     edgeEndpoints.push_back({u, v});
     
-    // Add edge v -> u (undirected)
+    // Додати v -> u 
     adj[v].emplace_back(u, weight, ct, p_error);
     edgeEndpoints.push_back({v, u});
 }
@@ -163,7 +161,7 @@ const Edge* Graph::findEdge(int from, int to) const {
     return nullptr;
 }
 
-// Random implementation
+// Реалізація рандому
 Random::Random(double initValue) : _currentValue(initValue) {
     if (_currentValue < 0.0) _currentValue = 0.0;
     else if (_currentValue > 1.0) _currentValue = 1.0;
@@ -174,7 +172,6 @@ double Random::getValue() {
         _currentValue = 0.01;
     }
 
-    // Logistic map: x_{n+1} = r * x_n * (1 - x_n), where r = 4
     _currentValue = _currentValue * (1.0 - _currentValue) * 4.0;
 
     if (_currentValue < 0.0) _currentValue = 0.0;

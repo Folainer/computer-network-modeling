@@ -9,10 +9,10 @@ int main() {
     srand(static_cast<unsigned int>(time(0)));
 
     try {
-        // Create controller with 24 non-satellite nodes and 2 satellite nodes
+        // Створити контролер із 24 несупутникових вузлів та 2 супутникових вузла
         Controller controller(24, 2);
         
-        // Run the interactive command loop
+        // Запустити інтерактивний цикл команд
         controller.run();
     }
     catch (const exception& e) {

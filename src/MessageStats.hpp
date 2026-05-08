@@ -9,7 +9,7 @@ struct MessageStats {
     int bytesReceived = 0;
     int bytesTotalReceived = 0;
     int packetsDropped = 0;
-    bool delivered = false;  // final message delivered?
+    bool delivered = false;
     int firstSendTime = 0;
     int deliveryTime = 0;
 };
